@@ -65,18 +65,35 @@ public class Utils {
     public static DatabaseManager databaseManager;
 
     static {
-        try {
-            if (isFolia()) {
-                versionUtils = (VersionUtils) Class.forName("me.deadlight.ezchestshop.utils.v1_20_R3").newInstance();
-            } else {
+        VersionUtils loaded = null;
+        if (isFolia()) {
+            loaded = instantiateVersionUtils("me.deadlight.ezchestshop.utils.v1_21_R1");
+            if (loaded == null) {
+                loaded = instantiateVersionUtils("me.deadlight.ezchestshop.utils.v1_20_R3");
+            }
+        } else {
+            try {
                 String packageName = Utils.class.getPackage().getName();
                 String internalsName = Bukkit.getServer().getClass().getPackage().getName().split("\\.")[3];
-                versionUtils = (VersionUtils) Class.forName(packageName + "." + internalsName).newInstance();
+                loaded = (VersionUtils) Class.forName(packageName + "." + internalsName).newInstance();
+            } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | ClassCastException ignored) {
+                // logged below if no implementation could be found
             }
-        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException
-                | ClassCastException exception) {
+        }
+
+        if (loaded == null) {
             Bukkit.getLogger().log(Level.SEVERE,
                     "EzChestShop could not find a valid implementation for this server version.");
+        } else {
+            versionUtils = loaded;
+        }
+    }
+
+    private static VersionUtils instantiateVersionUtils(String className) {
+        try {
+            return (VersionUtils) Class.forName(className).newInstance();
+        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | ClassCastException ignored) {
+            return null;
         }
     }
 
